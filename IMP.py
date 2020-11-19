@@ -1,11 +1,6 @@
-import multiprocessing as mp
 import time
-import sys
 import argparse
-import os
 import numpy as np
-from math import log, pow, sqrt, log2
-import math
 import random
 
 model = ''
@@ -120,79 +115,27 @@ def ISEtest(network, seedSet, model):
         for j in range(0, epoch):
             findLT(network)
     RESULT /= epoch
-    # print(epoch)
     print("Model: ",model)
     print("Result: ", RESULT)
     print("ISE time: ", time.time()-t1)
 
 
-def IMM(G:NetWork, k, epsilon, l):
-    n = G.n
-    l = l * ( 1 + log(2.0)/log(n) )
-    R = Sampling(G, k, epsilon, l)
-    S_star_k, _ = NodeSelection(R, n, k)
-    return S_star_k
-
-
-def Sampling(G:NetWork, k, epsilon, l):
+def getRR(G, time_limit):
     R = []
-    LB = 1
-    epsilon_2 = sqrt(2.0) * epsilon
+    t1 = time.time()
     n = G.n
-
-    lambada_2 = Equation9(epsilon_2, n, k, l)
-    lambada_star = Equation6(l, n, k, epsilon)
-
-    pow_2_i = 1
-    selected_nodes = set()
-    for i in range(1, int(log2(n))):
-
-        pow_2_i *= 2
-        x = n / pow_2_i
-        theta_i = lambada_2 / x
-        while len(R) <= theta_i:
-            v = np.random.randint(n)
-            while v in selected_nodes:
-                v = np.random.randint(n)
-            R.append(GenerateRR(G, v))
-
-        S_i, F_R = NodeSelection(R, n, k)
-        if n*F_R >= ( 1 + epsilon_2 )*x :
-            LB = n * F_R / ( 1 + epsilon_2 )
-            break
-
-    theta = lambada_star / LB
-    while len(R) <= theta:
-        v = np.random.randint(n)
-        while v in selected_nodes:
-            v = np.random.randint(n)
+    while( time.time()-t1 < time_limit-30 ):
+        v = np.random.randint(n)+1
         R.append(GenerateRR(G, v))
+    #print(len(R))
     return R
 
 
-def Equation9(epsilon_2, n, k, l):
-    C_n_k = 1
-    for i in range(1,k+1):
-        C_n_k *= n+1-i
-        C_n_k /= i
-
-    upper = ( 2 + 2/3*epsilon_2 ) * ( log(C_n_k) + l*log(n) + log(log2(n)) ) * n
-    lower = epsilon_2 * epsilon_2
-
-    return upper / lower
-
-
-def Equation6(l, n, k, epsilon):
-    C_n_k = 1
-    for i in range(1, k+1):
-        C_n_k *= n + 1 - i
-        C_n_k /= i
-
-    alpha = sqrt( l*log(n) + log(2) )
-    beta = sqrt( ( 1 - 1/math.e ) * ( log(C_n_k) + l*log(n) + log(2) ) )
-
-    intermediate = ( ( 1 - 1/math.e ) * alpha + beta ) / epsilon
-    return 2 * n * intermediate * intermediate
+def IMM(G:NetWork, k, time_limit):
+    n = G.n
+    R = getRR(G, time_limit)
+    S_star_k, _ = NodeSelection(R, n, k)
+    return S_star_k
 
 
 def GenerateRR(G:NetWork, v):
@@ -207,8 +150,7 @@ def GenerateRRIC(G:NetWork, v):
     activitySet = [v]
     RR = [v]
     activity = {}
-    for src in activitySet:
-        activity[src] = True
+    activity[v] = True
 
     while len(activitySet) != 0:
         newActibitySet = []
@@ -266,6 +208,7 @@ def NodeSelection(R, n, k):
 
 
 if __name__ == '__main__':
+    start = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--file_name', type=str, default='network.txt')
     parser.add_argument('-k', '--seed_size', type=int, default=50)
@@ -285,32 +228,12 @@ if __name__ == '__main__':
     network = NetWork(file_name)
     np.random.seed()
 
-    if( network.n <= 70 ):
-        epsilon = 0.05
-    if( network.n <= 750 ):
-        epsilon = 0.1
-    elif( network.n <= 2500 ):
-        epsilon = 0.2
-    elif( network.n <= 10000 ):
-        epsilon = 0.25
-    elif( network.n <= 20000 ):
-        epsilon = 0.3
-    elif( network.n <= 40000 ):
-        epsilon = 0.4
-    elif (network.n <= 60000):
-        epsilon = 0.5
-    else:
-        epsilon = 0.6
-
-    l = 1
-
-    start = time.time()
-    S_star_k = IMM(network, k, epsilon, l)
+    S_star_k = IMM(network, k, time_limit)
 
     for seed in S_star_k:
         print(seed)
     end = time.time()
 
-    #print("IMP time: ", end-start)
-    #ISEtest(network, S_star_k, 'IC')
-    #ISEtest(network, S_star_k, 'LT')
+    # print("IMP time: ", end-start)
+    # ISEtest(network, S_star_k, 'IC')
+    # ISEtest(network, S_star_k, 'LT')
