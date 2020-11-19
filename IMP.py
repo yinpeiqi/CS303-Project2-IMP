@@ -103,7 +103,7 @@ def getEpoch(p):
         epoch = 1000
     if epoch < 50:
         epoch = 50
-    return epoch*20
+    return epoch
 
 
 def ISEtest(network, seedSet, model):
@@ -241,14 +241,14 @@ def GenerateRRLT(G:NetWork, v):
 
 def NodeSelection(R, n, k):
     node_cover = {}
-    cover_count = [ 0 for _ in range(n+1) ]
+    cover_count = [0 for _ in range(n+1)]
     for i in range(len(R)):
         RR = R[i]
         for u in RR:
-            cover_count[u] += 1
             if u not in node_cover:
                 node_cover[u] = set()
             node_cover[u].add(i)
+            cover_count[u] += 1
 
     S_star_k = []
     F_R = 0
@@ -258,8 +258,7 @@ def NodeSelection(R, n, k):
         S_star_k.append(selected_node)
         covered = node_cover[selected_node].copy()
         for RR_index in covered:
-            RR = R[RR_index]
-            for u in RR:
+            for u in R[RR_index]:
                 cover_count[u] -= 1
                 node_cover[u].remove(RR_index)
     F_R /= len(R)
@@ -277,13 +276,32 @@ if __name__ == '__main__':
     file_name = args.file_name
     k = args.seed_size
     model = args.model
-    file_name, k = 'NetHEPT.txt', 50
-    model = 'LT'
+    #file_name, k = 'twitter-d.txt', 50
+    #file_name, k = 'epinions-d-5.txt', 100
+    #file_name, k = 'NetHEPT.txt', 50
+    #file_name, k = 'network.txt', 5
+    #model = 'LT'
     time_limit = args.time_limit
     network = NetWork(file_name)
     np.random.seed()
 
-    epsilon = 0.1
+    if( network.n <= 70 ):
+        epsilon = 0.05
+    if( network.n <= 750 ):
+        epsilon = 0.1
+    elif( network.n <= 2500 ):
+        epsilon = 0.2
+    elif( network.n <= 10000 ):
+        epsilon = 0.25
+    elif( network.n <= 20000 ):
+        epsilon = 0.3
+    elif( network.n <= 40000 ):
+        epsilon = 0.4
+    elif (network.n <= 60000):
+        epsilon = 0.5
+    else:
+        epsilon = 0.6
+
     l = 1
 
     start = time.time()
@@ -292,6 +310,7 @@ if __name__ == '__main__':
     for seed in S_star_k:
         print(seed)
     end = time.time()
-    print("IMP time: ", end-start)
-    ISEtest(network, S_star_k, 'IC')
-    ISEtest(network, S_star_k, 'LT')
+
+    #print("IMP time: ", end-start)
+    #ISEtest(network, S_star_k, 'IC')
+    #ISEtest(network, S_star_k, 'LT')
