@@ -45,97 +45,21 @@ class NetWork:
             self.seeds.append(seed)
 
 
-RESULT = 0
-def findIC(network):
-    activitySet = network.seeds.copy()
-    result = len(activitySet)
-    activity = {}
-    for src in activitySet:
-        activity[src] = True
-
-    while len(activitySet) != 0:
-        newActibitySet = []
-        for src in activitySet:
-            for e in network.node[src].outEdges:
-                if e.dst not in activity:
-                    if e.w > np.random.random():
-                        newActibitySet.append(e.dst)
-                        activity[e.dst] = True
-        result += len(newActibitySet)
-        activitySet = newActibitySet
-    global RESULT
-    RESULT += result
-
-
-def findLT(network):
-
-    activitySet = network.seeds.copy()
-    threshold = {}
-    activity = {}
-    for src in activitySet:
-        activity[src] = 1
-
-    for src in activitySet:
-        for e in network.node[src].outEdges:
-            if e.dst not in activity:
-                threshold[e.dst] = np.random.random()
-                activity[e.dst] = e.w
-            elif activity[e.dst] != 1:
-                activity[e.dst] += e.w
-            else:
-                continue
-            if activity[e.dst] >= threshold[e.dst]:
-                activity[e.dst] = 1
-                activitySet.append(e.dst)
-    result = len(activitySet)
-    global RESULT
-    RESULT += result
-
-
-def getEpoch(p):
-    epoch = int(4000/p)
-    if epoch > 1000:
-        epoch = 1000
-    if epoch < 50:
-        epoch = 50
-    return epoch
-
-
-def ISEtest(network, seedSet, model):
-    network.setSeed(seedSet)
-    epoch = getEpoch(len(network.seeds))
-    global RESULT
-    RESULT = 0
-    t1 = time.time()
-
-    if model == 'IC':
-        for j in range(0, epoch):
-            findIC(network)
-    elif model == 'LT':
-        for j in range(0, epoch):
-            findLT(network)
-    RESULT /= epoch
-    print("Model: ",model)
-    print("Result: ", RESULT)
-    print("ISE time: ", time.time()-t1)
-
-
 def getRR(G, time_limit):
     R = []
     t1 = time.time()
     n = G.n
-    while( time.time()-t1 < time_limit-30 ):
+    while( time.time()-t1 < time_limit/2 ):
         v = np.random.randint(n)+1
         R.append(GenerateRR(G, v))
-    #print(len(R))
     return R
 
 
 def IMM(G:NetWork, k, time_limit):
     n = G.n
     R = getRR(G, time_limit)
-    S_star_k, _ = NodeSelection(R, n, k)
-    return S_star_k
+    S = NodeSelection(R, n, k)
+    return S
 
 
 def GenerateRR(G:NetWork, v):
@@ -192,19 +116,16 @@ def NodeSelection(R, n, k):
             node_cover[u].add(i)
             cover_count[u] += 1
 
-    S_star_k = []
-    F_R = 0
+    S = []
     for i in range(1, k+1):
         selected_node = cover_count.index(max(cover_count))
-        F_R += len(node_cover[selected_node])
-        S_star_k.append(selected_node)
+        S.append(selected_node)
         covered = node_cover[selected_node].copy()
         for RR_index in covered:
             for u in R[RR_index]:
                 cover_count[u] -= 1
                 node_cover[u].remove(RR_index)
-    F_R /= len(R)
-    return S_star_k, F_R
+    return S
 
 
 if __name__ == '__main__':
@@ -221,19 +142,19 @@ if __name__ == '__main__':
     model = args.model
     #file_name, k = 'twitter-d.txt', 50
     #file_name, k = 'epinions-d-5.txt', 100
-    #file_name, k = 'NetHEPT.txt', 50
+    file_name, k = 'NetHEPT.txt', 50
     #file_name, k = 'network.txt', 5
     #model = 'LT'
     time_limit = args.time_limit
     network = NetWork(file_name)
     np.random.seed()
 
-    S_star_k = IMM(network, k, time_limit)
+    S = IMM(network, k, time_limit)
 
-    for seed in S_star_k:
+    for seed in S:
         print(seed)
     end = time.time()
 
-    # print("IMP time: ", end-start)
+    print("IMP time: ", end-start)
     # ISEtest(network, S_star_k, 'IC')
     # ISEtest(network, S_star_k, 'LT')
