@@ -1,8 +1,5 @@
-import multiprocessing as mp
 import time
-import sys
 import argparse
-import os
 import numpy as np
 
 core = 8
@@ -90,17 +87,8 @@ def findLT(network):
     global RESULT
     RESULT += result
 
-
-def getEpoch(p):
-    epoch = int(4000/p)
-    if epoch > 1000:
-        epoch = 1000
-    if epoch < 50:
-        epoch = 50
-    return epoch*10
-
-
 if __name__ == '__main__':
+    t1 = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--file_name', type=str, default='network.txt')
     parser.add_argument('-s', '--seed', type=str, default='seeds.txt')
@@ -118,16 +106,15 @@ if __name__ == '__main__':
     network = NetWork(file_name, seed)
 
     np.random.seed()
-    epoch = getEpoch(len(network.seeds))
+    epoch = 0
     RESULT = 0
-    t1 = time.time()
-    if model == 'IC':
-        for j in range(0, epoch):
+    while( time.time() - t1 < time_limit-10 ):
+        if model == 'IC':
             findIC(network)
-    elif model == 'LT':
-        for j in range(0, epoch):
+        elif model == 'LT':
             findLT(network)
+        epoch += 1
     RESULT /= epoch
     #print(epoch)
-    print(time.time()-t1)
+    #print(time.time()-t1)
     print(RESULT)
